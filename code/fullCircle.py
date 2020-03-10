@@ -60,7 +60,7 @@ def fullCircleFunction():
         firstFilmCastList.append(x['name'])
 
     #Open up and read in the text file with all of the films covered by the They Remade It podcast
-    filmListIn = open("theyRemadeItList.txt", "r")
+    filmListIn = open("../textFiles/theyRemadeItList.txt", "r")
     filmCompareList = filmListIn.read().splitlines()
 
     #So, while the incremented variable is less than the length of the text file, this while loop will run through and make an API call for each
@@ -159,7 +159,7 @@ def fullCircleFunction():
                 finalOut.write(y)
                 finalOut.write("\n")
     if addToFile == True:
-        with open("theyRemadeItList.txt", 'a') as addToFile:
+        with open("../textFiles/theyRemadeItList.txt", 'a') as addToFile:
             addToFile.write("\n")
             addToFile.write(firstFilmTitle + " " + firstFilmYear)
             addToFile.close()
