@@ -1,0 +1,1 @@
+This is where generated notes end up after they exit the script
