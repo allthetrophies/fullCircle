@@ -19,6 +19,15 @@ listFullCircle = []        #Value will be used for storing the list used for Ful
 wikiResults = []           #Value will be used for storing the results from the wiki search
 APIKEY = "ef9bd486181321a8c5dbd8d87432ecaf"   #Provided API Key that allows me to call TMDb
 
+
+
+
+
+
+
+
+
+
 def onTabClickFunc(self):
     readOnlyText.configure(state="normal")
     readOnlyText.delete('1.0', END)
@@ -56,15 +65,42 @@ def onTabClickFunc(self):
     readOnlyText.configure(state="disabled")
     readOnlyText.update()
 
+
+
+
+
+
+
+
+
+
 #Function for enabling the Opening Line field
 def enableOpeningLineEntryFunc():
     openingLineEntry.configure(state="normal")    #Sets the entry field to normal, or enabled
     openingLineEntry.update()                     #Update the status of the entry field
 
+
+
+
+
+
+
+
+
+
 #Function for disabling the Opening Line field
 def disableOpeningLineEntryFunc():
     openingLineEntry.configure(state="disabled")    #Sets the entry field to disabled
     openingLineEntry.update()                       #Update the status of the entry field
+
+
+
+
+
+
+
+
+
 
 #Function for adding in films to the watch list
 def addToWatchListFunc():
@@ -84,6 +120,15 @@ def addToWatchListFunc():
                 filmWatchText.insert(END, '\n')
         filmWatchText.configure(state="disabled")
         filmWatchText.update()
+
+
+
+
+
+
+
+
+
 
 #Function for obtaining a films cast list and formatting it
 def castListFunc(filmTitle, filmYear):
@@ -153,6 +198,15 @@ def castListFunc(filmTitle, filmYear):
 
     return(finalFilmCastList)    #Return the cast list of the film that was passed in
 
+
+
+
+
+
+
+
+
+
 #Function for obtaining Full Circle instances between the passed in film and previously covered films on the show
 def fullCircleFunc(firstFilmTitle, firstFilmYear):
     firstFilmCastList = []       #Dynamic list used to hold cast members of entered film
@@ -191,7 +245,7 @@ def fullCircleFunc(firstFilmTitle, firstFilmYear):
         firstFilmCastList.append(x['name'])
 
     #Open up and read in the text file with all of the films covered by the They Remade It podcast
-    filmListIn = open("../../../textFiles/theyRemadeItList.txt", "r")
+    filmListIn = open("../../textFiles/theyRemadeItList.txt", "r")
     filmCompareList = filmListIn.read().splitlines()
 
     #So, while the incremented variable is less than the length of the text file, this while loop will run through and make an API call for each
@@ -266,7 +320,7 @@ def fullCircleFunc(firstFilmTitle, firstFilmYear):
             firstCharacter = ""     #Set the first film character string back to empty
             secondCharacter = ""    #Set the second film character string back to empty
 
-        #Clears out the compare array for the next go around
+        #Clears out the compare arrays for the next go around
         comparedFilmCastList.clear()
 
         #Prevents the while loop from stepping past the length of the file and crashing/ending prematurely
@@ -277,6 +331,132 @@ def fullCircleFunc(firstFilmTitle, firstFilmYear):
 
         #Used to reduce the amount of API calls the program makes (otherwise the program might crash)
         time.sleep(0.125)
+
+    #Data for Aladdin (1992)
+    comparedFilmTitle = "Aladdin"
+    comparedFilmYear = "1992"
+    reducedComparedFilmTitle = re.sub('[^A-Za-z0-9]+', '', comparedFilmTitle).lower()
+ 
+    castCompareURL = "https://api.themoviedb.org/3/movie/812/credits?api_key=" + APIKEY
+
+    #Converts JSON in Python readable format
+    compareCastResponse = requests.get(castCompareURL)
+    compareCastGrab = compareCastResponse.json()
+
+    #Places entire cast list of film from text file into a dynamic list
+    for x in compareCastGrab['cast']:
+        comparedFilmCastList.append(x['name'])
+
+    #Goes through and grabs the name of the role that the actor/actress portrayed in the film. Only lists one if they have multiple in the same movie
+    #It then makes a line for the new text file and puts it into a string array
+    for x in set(firstFilmCastList).intersection(comparedFilmCastList):
+        actorURL = "http://api.tmdb.org/3/search/person?api_key=" + APIKEY + "&query=" + x
+
+        #Convert the JSON from the call into a usable actor/actress
+        actorResponse = requests.get(actorURL)
+        actorGrab = actorResponse.json()
+
+        #Grab the first actor/actress ID and then break
+        for y in actorGrab['results']:
+            actorID = str(y['id'])
+            break
+
+        #API call to grab character data based on the actor/actress
+        characterURL = "https://api.themoviedb.org/3/person/" + actorID + "/movie_credits?api_key=" + APIKEY
+
+        #Convert the JSON from the call into a usable character
+        characterResponse = requests.get(characterURL)
+        characterGrab = characterResponse.json()
+
+        #For every actor in the list, grab both the characters that the actor played that warrant inclusion in Full Circle
+        for y in characterGrab['cast']:
+            if re.sub('[^A-Za-z0-9]+', '', y['title']).lower() == reducedFirstFilmTitle and str(y['release_date'][0:4]) == firstFilmYear:
+                firstCharacter = y['character']
+            if re.sub('[^A-Za-z0-9]+', '', y['title']).lower() == reducedComparedFilmTitle and str(y['release_date'][0:4]) == comparedFilmYear:
+                secondCharacter = y['character']
+
+        #Hokey, don't replicate. Will be fixed later. For both characters, if the string is empty add this error message
+        if firstCharacter == "":
+            firstCharacter = "**UNABLE TO PULL CHARACTER DATA**"
+        if secondCharacter == "":
+            secondCharacter = "**UNABLE TO PULL CHARACTER DATA**"
+
+        #Formatting message for the Full Circle final output
+        finalActorList.append(x + " plays " + firstCharacter + " in " + firstFilmTitle + " (" + firstFilmYear + ") and plays " + secondCharacter + " in " + comparedFilmTitle + "(" + comparedFilmYear + ")")
+
+        firstCharacter = ""     #Set the first film character string back to empty
+        secondCharacter = ""    #Set the second film character string back to empty
+
+    #Clears out the compare arrays for the next go around
+    comparedFilmCastList.clear()
+
+    #Grabs the cast list for It (1990)
+    comparedFilmTitle = "It"
+    comparedFilmYear = "1990"
+    reducedComparedFilmTitle = re.sub('[^A-Za-z0-9]+', '', comparedFilmTitle).lower()
+
+    castCompareURL = "https://api.themoviedb.org/3/tv/19614/credits?api_key=" + APIKEY
+
+    #Converts JSON in Python readable format
+    compareCastResponse = requests.get(castCompareURL)
+    compareCastGrab = compareCastResponse.json()
+
+    #Places entire cast list of film from text file into a dynamic list
+    for x in compareCastGrab['cast']:
+        comparedFilmCastList.append(x['name'])
+
+    #Goes through and grabs the name of the role that the actor/actress portrayed in the film. Only lists one if they have multiple in the same movie
+    #It then makes a line for the new text file and puts it into a string array
+    for x in set(firstFilmCastList).intersection(comparedFilmCastList):
+        actorURL = "http://api.tmdb.org/3/search/person?api_key=" + APIKEY + "&query=" + x
+
+        #Convert the JSON from the call into a usable actor/actress
+        actorResponse = requests.get(actorURL)
+        actorGrab = actorResponse.json()
+
+        #Grab the first actor/actress ID and then break
+        for y in actorGrab['results']:
+            actorID = str(y['id'])
+            break
+
+        #API call to grab character data based on the actor/actress
+        characterURL = "https://api.themoviedb.org/3/person/" + actorID + "/movie_credits?api_key=" + APIKEY
+
+        #Convert the JSON from the call into a usable character
+        characterResponse = requests.get(characterURL)
+        characterGrab = characterResponse.json()
+
+        #API call to grab that same character data, but for their tv roles as It is a miniseries
+        characterTVURL = "https://api.themoviedb.org/3/person/" + actorID + "/tv_credits?api_key=" + APIKEY
+
+        #Convert the JSON from the call into a usable character
+        characterTVResponse = requests.get(characterTVURL)
+        characterTVGrab = characterTVResponse.json()
+
+        #For every actor in the list, grab both the characters that the actor played that warrant inclusion in Full Circle
+        for y in characterGrab['cast']:
+            if re.sub('[^A-Za-z0-9]+', '', y['title']).lower() == reducedFirstFilmTitle and str(y['release_date'][0:4]) == firstFilmYear:
+                firstCharacter = y['character']
+        
+        #Do the same, but for the character they played in the It miniseries
+        for y in characterTVGrab['cast']:
+            if re.sub('[^A-Za-z0-9]+', '', y['name']).lower() == reducedComparedFilmTitle:
+                secondCharacter = y['character']
+
+        #Hokey, don't replicate. Will be fixed later. For both characters, if the string is empty add this error message
+        if firstCharacter == "":
+            firstCharacter = "**UNABLE TO PULL CHARACTER DATA**"
+        if secondCharacter == "":
+            secondCharacter = "**UNABLE TO PULL CHARACTER DATA**"
+
+        #Formatting message for the Full Circle final output
+        finalActorList.append(x + " plays " + firstCharacter + " in " + firstFilmTitle + " (" + firstFilmYear + ") and plays " + secondCharacter + " in " + comparedFilmTitle + "(" + comparedFilmYear + ")")
+
+        firstCharacter = ""     #Set the first film character string back to empty
+        secondCharacter = ""    #Set the second film character string back to empty
+
+    #Clears out the compare arrays for the next go around
+    comparedFilmCastList.clear()
 
     #Sort the list of actors//actresses alphabetically
     finalActorList.sort()
@@ -291,6 +471,15 @@ def fullCircleFunc(firstFilmTitle, firstFilmYear):
                     finalActorList[z] = ""
 
     return(finalActorList)    #Return the list of Full Circle cases
+
+
+
+
+
+
+
+
+
 
 #Function for creating the show notes document
 def theyRemadeItFunc():
@@ -318,6 +507,8 @@ def theyRemadeItFunc():
                 filmID2 = str(x['id'])
 
         if filmID1 is None or filmID2 is None:
+            print(filmID1)
+            print(filmID2)
             messagebox.showerror("ERROR!", "Could not find your films, please ensure everything is entered correctly")
         else:
             document = Document()    #Initialize the document
@@ -399,13 +590,13 @@ def theyRemadeItFunc():
             titleOfFile = firstFilmTitleEntry.get() + ' (' + firstFilmYearEntry.get() + ') and ' + secondFilmTitleEntry.get() + ' (' + secondFilmYearEntry.get() + ')' + '.docx'
         
             #Save off the document under the freshly created title
-            document.save('../../../podcastNotes/' + titleOfFile)
+            document.save('../../podcastNotes/' + titleOfFile)
         
             #Print out the file that you just created
             if printRadio.get() == 1:
                 os.startfile(titleOfFile, "print")
             
-            with open("../../../textFiles/theyRemadeItList.txt", 'a') as addToFile:
+            with open("../../textFiles/theyRemadeItList.txt", 'a') as addToFile:
                 addToFile.write("\n")
                 addToFile.write(firstFilmTitleEntry.get() + " " + firstFilmYearEntry.get())
                 addToFile.write("\n")
